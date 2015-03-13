@@ -1,5 +1,5 @@
-# Foundation-Angular-Grunt
-Foundation / Angular with Grunt.js
+# Foundation-Angular-Gulp
+Foundation / Angular with Gulp.js
 
 To run this project:
 
