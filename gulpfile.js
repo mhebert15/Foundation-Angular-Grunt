@@ -1,72 +1,140 @@
 var gulp = require('gulp'),
     sass = require('gulp-sass'),
+    clean = require('gulp-clean'),
     autoprefixer = require('gulp-autoprefixer'),
     minifycss = require('gulp-minify-css'),
     rename = require('gulp-rename'),
-    open = require('gulp-open'),
+    jshint = require('gulp-jshint'),
     inject = require('gulp-inject'),
+    es = require('event-stream'),
     bowerFiles = require('main-bower-files'),
-    es = require('event-stream');
+    imagemin = require('gulp-imagemin'),
+    uglify = require('gulp-uglify'),
+    open = require('gulp-open'),
+    concat = require('gulp-concat'),
+    connect = require('gulp-connect'),
+    pngquant = require('imagemin-pngquant'),
+    runsequence = require('run-sequence'),
+    watch = require('gulp-watch'),
+    gmerge = require('gulp-merge'),
+    html2js = require('gulp-html2js'),
+    minifyHTML = require('gulp-minify-html'),
+    annotate = require('gulp-ng-annotate'),
+    root = './build/src';
 
-gulp.task('express', function() {
-    var express = require('express');
-    var app = express();
-    app.use(require('connect-livereload')({port: 4002}));
-    app.use(express.static(__dirname));
-    app.listen(4000);
+// Delete the dist directory
+gulp.task('clean', function () {
+    return gulp.src('build/')
+        .pipe(clean({force: true}));
 });
 
-var tinylr;
-gulp.task('livereload', function() {
-    tinylr = require('tiny-lr')();
-    tinylr.listen(4002);
-});
-
-function notifyLiveReload(event) {
-    var fileName = require('path').relative(__dirname, event.path);
-    tinylr.changed({
-        body: {
-            files: [fileName]
-        }
-    });
-};
-
-gulp.task('styles', function() {
-    return gulp.src('src/app/scss/*.scss')
-        .pipe(sass({ style: 'expanded' }))
+//Task for sass using libsass through gulp-sass
+gulp.task('styles', function () {
+    return gulp.src('src/app/assets/sass/*.scss')
+        .pipe(sass({style: 'expanded'}))
         .pipe(autoprefixer('last 2 version', 'safari 5', 'ie 8', 'ie 9', 'opera 12.1'))
         .pipe(gulp.dest('src/app/assets/css'))
         .pipe(rename({suffix: '.min'}))
         .pipe(minifycss())
-        .pipe(gulp.dest('src/app/assets/css'));
+        .pipe(gulp.dest('build/src/app/assets/css'))
+});
+
+// Process scripts and concatenate them into one output file
+gulp.task('scripts', function () {
+    return gmerge(gulp.src('src/app/**/*.js')
+            .pipe(jshint())
+            .pipe(jshint.reporter('default')),
+        gulp.src('src/app/**/*.html')
+            .pipe(minifyHTML({
+                empty: true,
+                conditionals: true
+            }))
+            .pipe(html2js({
+                base: 'src/app',
+                outputModuleName: 'foundationApp.templates',
+                useStrict: true
+            }))
+            .pipe(concat('foundationApp.templates.js')))
+        .pipe(annotate())
+        .pipe(uglify())
+        .pipe(concat('app.min.js'))
+        .pipe(gulp.dest(root + "/app/assets/js"))
+});
+
+// Process vendor scripts and concatenate them into one output file
+gulp.task('vendor', function () {
+    return gulp.src(bowerFiles())
+        .pipe(uglify({mangle: false}))
+        .pipe(concat('vendor.min.js'))
+        .pipe(gulp.dest(root + '/app/assets/js/'))
+});
+
+//Task for minifying images with imagemin
+gulp.task('imagemin', function () {
+    return gulp.src('src/images/*')
+        .pipe(imagemin({
+            progressive: true,
+            svgoPlugins: [{removeViewBox: false}],
+            use: [pngquant()]
+        }))
+        .pipe(gulp.dest(root + '/app/assets/images/'))
+});
+
+//Task for moving html-files to the build-dir
+//added as a convenience to make sure this gulpfile works without much modification
+
+gulp.task('build', ['styles', 'scripts', 'imagemin', 'vendor'], function () {
+
+});
+
+gulp.task('index', function () {
+    var css = gulp.src(['build/src/app/assets/**/*.min.css'], {read: false});
+    return gulp.src('src/index.html')
+        .pipe(inject(gulp.src('build/src/app/assets/js/vendor.min.js', {read: false}),
+            {
+                name: 'vendor',
+                ignorePath: '/build/src/',
+                addRootSlash: false
+            }
+        ))
+        .pipe(inject(es.merge(
+                css,
+                gulp.src('build/src/app/assets/js/app.min.js', {read: false})),
+            {
+                ignorePath: '/build/src/',
+                addRootSlash: false
+            }
+        )
+    )
+        .pipe(gulp.dest(root))
+});
+
+gulp.task('connect', function () {
+    connect.server({
+        root: root,
+        port: 5000,
+        livereload: true
+    });
 });
 
 gulp.task('url', function(){
     var options = {
-        url: 'http://localhost:4000',
-        app: 'google chrome'
+        url: 'http://localhost:5000',
+        app: 'chrome'
     };
-    gulp.src('dist/src/index.html')
+    gulp.src('./build/src/index.html')
         .pipe(open('', options));
 });
 
-gulp.task('watch', function() {
-    gulp.watch('src/app/assets/scss/*.scss', ['styles']);
-    gulp.watch('*.html', notifyLiveReload);
-    gulp.watch('src/app/assets/css/*.css', notifyLiveReload);
+gulp.task('watch', function () {
+    gulp.watch('src/app/assets/css/*.css', ['styles']);
+    gulp.watch('src/app/**/*.js', ['scripts']);
+    gulp.watch('src/app/assets/images/*', ['imagemin']);
+    gulp.watch('src/app/**/*.html', ['scripts']);
+    gulp.watch('src/index.html', ['index']);
+    watch(root).pipe(connect.reload());
 });
 
-gulp.task('index', function () {
-    var appStream = gulp.src(['./src/app/*.js', './src/app/assets/**/*.min.css'], {read: false}, {relative: true});
-    gulp.src('src/index.html')
-        .pipe(inject(gulp.src(bowerFiles(), {read: false}), {name: 'bower'}, {relative: true}))
-        .pipe(inject(es.merge(
-            appStream,
-            gulp.src('src/app/**/*.js', {read: false})
-        )))
-        .pipe(gulp.dest('dist/src/'));
-});
-
-gulp.task('default', ['styles', 'express', 'livereload', 'watch','url', 'index'], function() {
-
+gulp.task('default', function () {
+    runsequence('clean', 'build', 'index', 'connect','url', 'watch');
 });

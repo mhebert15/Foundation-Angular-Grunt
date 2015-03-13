@@ -1,26 +1,27 @@
 <!DOCTYPE html>
-<html class="no-js" ng-app="fa-app">
+<html class="no-js" ng-app="foundationApp">
 <head>
     <title ng-bind="$state.current.data.pageTitle">Foundation Angular Boilerplate</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <!-- inject:css -->
     <!-- built css files will go here... -->
     <!-- endinject -->
+    <base href="/">
 </head>
 <body>
 <div class="wrapper">
     <!-- header component -->
-    <header></header>
-    <!-- main navigation component -->
-    <nav></nav>
+    <foundation-header></foundation-header>
     <!-- current ui.router state -->
-    <div class="main-view" ui-view="current"></div>
+    <div class="main-view" ui-view="current">
+
+    </div>
     <div class="push"></div>
 </div>
 <!-- footer component -->
-<footer></footer>
+<foundation-footer></foundation-footer>
 
-<!-- bower:js -->
+<!-- vendor:js -->
 <!-- bower installed scripts will go here... -->
 <!-- endinject -->
 

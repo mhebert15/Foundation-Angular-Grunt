@@ -1,0 +1,20 @@
+<top-bar-section>
+    <div ng-class="mobileActive ? 'active' : 'inactive'">
+        <!-- Right Nav Section -->
+        <ul class="right">
+            <li class="active"><a href="#">Active</a></li>
+            <li has-dropdown>
+                <a href="#">Dropdown</a>
+                <ul top-bar-dropdown>
+                    <li><a href="#">First link in dropdown</a></li>
+                </ul>
+            </li>
+        </ul>
+
+        <!-- Left Nav Section -->
+        <ul class="left">
+            <li><a ui-sref="landing">Landing</a></li>
+            <li><a ui-sref="about">About</a></li>
+        </ul>
+    </div>
+</top-bar-section>
