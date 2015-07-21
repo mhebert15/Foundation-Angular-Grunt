@@ -92,7 +92,7 @@ function configImpl($stateProvider, $urlRouterProvider, $locationProvider) {
     /**
      * redirect to landing page
      */
-
+    $locationProvider.html5Mode(true);
     $urlRouterProvider.otherwise('/');
 
 }

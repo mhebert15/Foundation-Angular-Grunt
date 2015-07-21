@@ -1,6 +1,6 @@
 var gulp = require('gulp'),
     sass = require('gulp-sass'),
-    clean = require('gulp-clean'),
+    del = require('del'),
     autoprefixer = require('gulp-autoprefixer'),
     minifycss = require('gulp-minify-css'),
     rename = require('gulp-rename'),
@@ -22,10 +22,13 @@ var gulp = require('gulp'),
     annotate = require('gulp-ng-annotate'),
     root = './build/src';
 
+
+
 // Delete the dist directory
-gulp.task('clean', function () {
-    return gulp.src('build/')
-        .pipe(clean({force: true}));
+gulp.task('clean', function (cb) {
+    del([
+        'build/'
+    ], cb);
 });
 
 //Task for sass using libsass through gulp-sass
@@ -33,7 +36,6 @@ gulp.task('styles', function () {
     return gulp.src('src/app/assets/sass/*.scss')
         .pipe(sass({style: 'expanded'}))
         .pipe(autoprefixer('last 2 version', 'safari 5', 'ie 8', 'ie 9', 'opera 12.1'))
-        .pipe(gulp.dest('src/app/assets/css'))
         .pipe(rename({suffix: '.min'}))
         .pipe(minifycss())
         .pipe(gulp.dest('build/src/app/assets/css'))
@@ -117,7 +119,7 @@ gulp.task('connect', function () {
     });
 });
 
-gulp.task('url', function(){
+gulp.task('url', function () {
     var options = {
         url: 'http://localhost:5000',
         app: 'chrome'
@@ -136,5 +138,5 @@ gulp.task('watch', function () {
 });
 
 gulp.task('default', function () {
-    runsequence('clean', 'build', 'index', 'connect','url', 'watch');
+    runsequence('clean', 'build', 'index', 'connect', 'url', 'watch');
 });
